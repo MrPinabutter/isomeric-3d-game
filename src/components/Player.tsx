@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
-import { Mesh, Vector3 } from "three";
+import { Mesh, PerspectiveCamera, Vector3 } from "three";
 import { usePlayerMovement } from "../hooks/usePlayerMovement";
 
 interface DebtorProps {
@@ -18,6 +18,7 @@ export const Player = ({ position }: DebtorProps) => {
   useFrame((state, delta) => {
     if (!meshRef.current) return;
 
+    // Update camera position based on mouse movement
     const mouseOffsetX = state.pointer.x * 0.5;
     const mouseOffsetY = state.pointer.y * 0.5;
 
@@ -29,6 +30,14 @@ export const Player = ({ position }: DebtorProps) => {
 
     state.camera.position.lerp(newCameraPosition, 0.15);
 
+    // Update camera FOV based on run state
+    const targetFov = run ? 100 : 80;
+    (state.camera as PerspectiveCamera).fov =
+      (state.camera as PerspectiveCamera).fov +
+      (targetFov - (state.camera as PerspectiveCamera).fov) * 0.05;
+    state.camera.updateProjectionMatrix();
+
+    // Update player position based on movement keys
     const frontVector = new Vector3(0, Number(forward) - Number(backward), 0);
     const sideVector = new Vector3(Number(right) - Number(left), 0, 0);
     const direction = new Vector3();
@@ -40,6 +49,7 @@ export const Player = ({ position }: DebtorProps) => {
 
     meshRef.current.position.add(direction);
 
+    // Update player rotation based on mouse position
     const lookAtTarget = new Vector3(
       state.pointer.x + meshRef.current.position.x,
       state.pointer.y + meshRef.current.position.y,
