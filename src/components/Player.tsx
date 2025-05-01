@@ -50,7 +50,7 @@ export const Player = ({ position }: DebtorProps) => {
     meshRef.current.getWorldDirection(currentLookAt);
 
     currentLookAt
-      .lerp(lookAtTarget.sub(meshRef.current.position), 0.1)
+      .lerp(lookAtTarget.sub(meshRef.current.position), 0.5)
       .normalize();
     meshRef.current.lookAt(meshRef.current.position.clone().add(currentLookAt));
   });
