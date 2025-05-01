@@ -1,7 +1,6 @@
 import { useFrame } from "@react-three/fiber";
-import { Mesh } from "three";
 import { useRef, useState } from "react";
-import { Vector3 } from "three";
+import { Mesh, Vector3 } from "three";
 import { usePlayerMovement } from "../hooks/usePlayerMovement";
 
 interface DebtorProps {
@@ -12,12 +11,23 @@ export const Player = ({ position }: DebtorProps) => {
   const meshRef = useRef<Mesh>(null);
   const [hovered, setHover] = useState(false);
   const [active, setActive] = useState(false);
-  const { forward, backward, left, right } = usePlayerMovement();
+  const { forward, backward, left, right, run } = usePlayerMovement();
 
   const SPEED = 6;
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
+
+    const mouseOffsetX = state.pointer.x * 0.5;
+    const mouseOffsetY = state.pointer.y * 0.5;
+
+    const newCameraPosition = new Vector3(
+      meshRef.current.position.x + mouseOffsetX,
+      meshRef.current.position.y + 0.5 + mouseOffsetY,
+      state.camera.position.z
+    );
+
+    state.camera.position.lerp(newCameraPosition, 0.15);
 
     const frontVector = new Vector3(0, Number(forward) - Number(backward), 0);
     const sideVector = new Vector3(Number(right) - Number(left), 0, 0);
@@ -26,7 +36,7 @@ export const Player = ({ position }: DebtorProps) => {
     direction
       .addVectors(frontVector, sideVector)
       .normalize()
-      .multiplyScalar(SPEED * delta * (active ? 2 : 1));
+      .multiplyScalar(SPEED * delta * (active || run ? 2 : 1));
 
     meshRef.current.position.add(direction);
   });

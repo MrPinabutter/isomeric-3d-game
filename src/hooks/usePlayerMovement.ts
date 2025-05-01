@@ -7,6 +7,7 @@ export const usePlayerMovement = () => {
     KeyA: "left",
     KeyD: "right",
     Space: "jump",
+    ShiftLeft: "run",
   };
 
   const moveFieldByKey = (key: keyof typeof keys) => keys[key];
@@ -17,6 +18,7 @@ export const usePlayerMovement = () => {
     left: false,
     right: false,
     jump: false,
+    run: false,
   });
   console.log(movement);
 
