@@ -39,6 +39,20 @@ export const Player = ({ position }: DebtorProps) => {
       .multiplyScalar(SPEED * delta * (active || run ? 2 : 1));
 
     meshRef.current.position.add(direction);
+
+    const lookAtTarget = new Vector3(
+      state.pointer.x + meshRef.current.position.x,
+      state.pointer.y + meshRef.current.position.y,
+      meshRef.current.position.z
+    );
+
+    const currentLookAt = new Vector3();
+    meshRef.current.getWorldDirection(currentLookAt);
+
+    currentLookAt
+      .lerp(lookAtTarget.sub(meshRef.current.position), 0.1)
+      .normalize();
+    meshRef.current.lookAt(meshRef.current.position.clone().add(currentLookAt));
   });
 
   return (
