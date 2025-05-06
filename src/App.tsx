@@ -3,6 +3,7 @@ import { Vector3 } from "three";
 import { Player } from "./components/Player";
 import { Debtor } from "./components/Debtor";
 import { ShineProjectile } from "./components/ShineProjectile";
+import { Stats } from "@react-three/drei";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
       <Debtor position={new Vector3(1.2, 0, 0)} />
       <Player position={new Vector3(-1.2, 0, 0)} />
       <ShineProjectile position={new Vector3(0, 0, 1)} />
+      <Stats />
     </Canvas>
   );
 }
