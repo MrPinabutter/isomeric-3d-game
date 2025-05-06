@@ -20,7 +20,6 @@ export const usePlayerMovement = () => {
     jump: false,
     run: false,
   });
-  console.log(movement);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,6 +40,8 @@ export const usePlayerMovement = () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keyup", handleKeyUp);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   return movement;
 };

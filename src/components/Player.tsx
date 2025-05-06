@@ -2,16 +2,25 @@ import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import { Mesh, PerspectiveCamera, Vector3 } from "three";
 import { usePlayerMovement } from "../hooks/usePlayerMovement";
+import { useProjectiles } from "../hooks/useProjectlles";
+import { ShineProjectile } from "./ShineProjectile";
 
-interface DebtorProps {
+interface PlayerProps {
   position?: Vector3;
 }
 
-export const Player = ({ position }: DebtorProps) => {
+export const Player = ({ position }: PlayerProps) => {
   const meshRef = useRef<Mesh>(null);
   const [hovered, setHover] = useState(false);
   const [active, setActive] = useState(false);
   const { forward, backward, left, right, run } = usePlayerMovement();
+
+  const { projectiles, updateProjectiles } = useProjectiles({
+    maxDistance: 15,
+    projectileSpeed: 15,
+    lifetime: 5 * 1000, // 5 seconds
+    shooterRef: meshRef,
+  });
 
   const SPEED = 6;
 
@@ -63,20 +72,28 @@ export const Player = ({ position }: DebtorProps) => {
       .lerp(lookAtTarget.sub(meshRef.current.position), 0.5)
       .normalize();
     meshRef.current.lookAt(meshRef.current.position.clone().add(currentLookAt));
+
+    updateProjectiles(delta, meshRef.current.position);
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      scale={active ? 1.5 : 1}
-      onClick={() => setActive(!active)}
-      onPointerOver={() => setHover(true)}
-      onPointerOut={() => setHover(false)}
-      type="Dynamic"
-      position={position}
-    >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
-    </mesh>
+    <>
+      <mesh
+        ref={meshRef}
+        scale={active ? 1.5 : 1}
+        onClick={() => setActive(!active)}
+        onPointerOver={() => setHover(true)}
+        onPointerOut={() => setHover(false)}
+        type="Dynamic"
+        position={position}
+      >
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
+      </mesh>
+
+      {projectiles.map((projectile) => (
+        <ShineProjectile key={projectile.id} position={projectile.position} />
+      ))}
+    </>
   );
 };
