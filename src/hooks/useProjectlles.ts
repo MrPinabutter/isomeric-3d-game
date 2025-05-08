@@ -73,7 +73,6 @@ export const useProjectiles = ({
 
           // Check if projectile has traveled too far
           const distanceFromPlayer = newPosition.distanceTo(playerPosition);
-          console.log(distanceFromPlayer, maxDistance);
 
           if (distanceFromPlayer > maxDistance) {
             return null;
@@ -116,8 +115,6 @@ export const useProjectiles = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  console.log(projectiles);
 
   return {
     projectiles,

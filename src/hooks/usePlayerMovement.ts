@@ -6,7 +6,7 @@ export const usePlayerMovement = () => {
     KeyS: "backward",
     KeyA: "left",
     KeyD: "right",
-    Space: "jump",
+    Space: "dodge",
     ShiftLeft: "run",
   };
 
@@ -17,8 +17,8 @@ export const usePlayerMovement = () => {
     backward: false,
     left: false,
     right: false,
-    jump: false,
     run: false,
+    dodge: false,
   });
 
   useEffect(() => {

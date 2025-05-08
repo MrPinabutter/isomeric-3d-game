@@ -13,12 +13,19 @@ export const Player = ({ position }: PlayerProps) => {
   const meshRef = useRef<Mesh>(null);
   const [hovered, setHover] = useState(false);
   const [active, setActive] = useState(false);
-  const { forward, backward, left, right, run } = usePlayerMovement();
+  const [isDodging, setIsDodging] = useState(false);
+  const [dodgeDirection, setDodgeDirection] = useState<Vector3 | null>(null);
+  const [dodgeTimeRemaining, setDodgeTimeRemaining] = useState(0);
+
+  const DODGE_TIMEOUT = 1000 * 1;
+  const DODGE_DURATION = 300;
+
+  const { forward, backward, left, right, run, dodge } = usePlayerMovement();
 
   const { projectiles, updateProjectiles } = useProjectiles({
     maxDistance: 15,
     projectileSpeed: 15,
-    lifetime: 5 * 1000, // 5 seconds
+    lifetime: 5 * 1000,
     shooterRef: meshRef,
   });
 
@@ -46,17 +53,57 @@ export const Player = ({ position }: PlayerProps) => {
       (targetFov - (state.camera as PerspectiveCamera).fov) * 0.05;
     state.camera.updateProjectionMatrix();
 
-    // Update player position based on movement keys
-    const frontVector = new Vector3(0, Number(forward) - Number(backward), 0);
-    const sideVector = new Vector3(Number(right) - Number(left), 0, 0);
-    const direction = new Vector3();
+    // Handle player movement
+    if (dodgeTimeRemaining > 0) {
+      if (dodgeDirection) {
+        const progress = 1 - dodgeTimeRemaining / DODGE_DURATION;
+        const easeOutStrength = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+        const dodgeSpeed = 40 * (1 - easeOutStrength) + 5 * easeOutStrength;
 
-    direction
-      .addVectors(frontVector, sideVector)
-      .normalize()
-      .multiplyScalar(SPEED * delta * (active || run ? 2 : 1));
+        const moveDelta = dodgeDirection
+          .clone()
+          .multiplyScalar(dodgeSpeed * delta);
+        meshRef.current.position.add(moveDelta);
+      }
 
-    meshRef.current.position.add(direction);
+      setDodgeTimeRemaining((prev) => Math.max(0, prev - delta * 1000));
+
+      if (dodgeTimeRemaining <= 0) {
+        setDodgeDirection(null);
+      }
+    } else {
+      const frontVector = new Vector3(0, Number(forward) - Number(backward), 0);
+      const sideVector = new Vector3(Number(right) - Number(left), 0, 0);
+      const direction = new Vector3();
+
+      if (dodge && !isDodging) {
+        const moveDirection = new Vector3();
+        moveDirection.addVectors(frontVector, sideVector);
+
+        if (moveDirection.length() === 0) {
+          const forwardDir = new Vector3();
+          meshRef.current.getWorldDirection(forwardDir);
+          forwardDir.z = 0;
+          setDodgeDirection(forwardDir.normalize());
+        } else {
+          setDodgeDirection(moveDirection.normalize());
+        }
+
+        setIsDodging(true);
+        setDodgeTimeRemaining(DODGE_DURATION);
+
+        setTimeout(() => {
+          setIsDodging(false);
+        }, DODGE_TIMEOUT);
+      } else {
+        direction
+          .addVectors(frontVector, sideVector)
+          .normalize()
+          .multiplyScalar(SPEED * delta * (active || run ? 2 : 1));
+
+        meshRef.current.position.add(direction);
+      }
+    }
 
     // Update player rotation based on mouse position
     const lookAtTarget = new Vector3(
@@ -88,7 +135,10 @@ export const Player = ({ position }: PlayerProps) => {
         position={position}
       >
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
+        <meshStandardMaterial
+          color={isDodging ? "hotpink" : "orange"}
+          opacity={hovered ? 0.2 : 1}
+        />
       </mesh>
 
       {projectiles.map((projectile) => (
