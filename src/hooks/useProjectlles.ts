@@ -1,12 +1,5 @@
 import { RefObject, useEffect, useRef, useState } from "react";
-import {
-  BufferGeometry,
-  Material,
-  Mesh,
-  NormalBufferAttributes,
-  Object3DEventMap,
-  Vector3,
-} from "three";
+import { Group, Vector3 } from "three";
 
 interface Projectile {
   id: number;
@@ -19,11 +12,7 @@ interface UseProjectilesOptions {
   maxDistance?: number;
   projectileSpeed?: number;
   lifetime?: number;
-  shooterRef: RefObject<Mesh<
-    BufferGeometry<NormalBufferAttributes>,
-    Material | Material[],
-    Object3DEventMap
-  > | null>;
+  shooterRef: RefObject<Group | null>;
 }
 
 export const useProjectiles = ({
