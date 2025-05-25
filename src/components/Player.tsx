@@ -1,14 +1,7 @@
 import { useGLTF } from "@react-three/drei"; // Import useGLTF
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useRef, useState } from "react";
-import {
-  Group,
-  PerspectiveCamera,
-  Vector3,
-  Box3,
-  Raycaster,
-  Plane,
-} from "three";
+import { Group, PerspectiveCamera, Plane, Raycaster, Vector3 } from "three";
 import { usePlayerMovement } from "../hooks/usePlayerMovement";
 import { useProjectiles } from "../hooks/useProjectlles";
 import { ShineProjectile } from "./ShineProjectile";
@@ -21,7 +14,7 @@ export const Player = ({ position }: PlayerProps) => {
   const groupRef = useRef<Group>(null);
   const { scene: gltfScene } = useGLTF("/assets/cube.glb");
 
-  const [hovered, setHover] = useState(false);
+  // const [hovered, setHover] = useState(false);
   const [active, setActive] = useState(false);
   const [isDodging, setIsDodging] = useState(false);
   const [dodgeDirection, setDodgeDirection] = useState<Vector3 | null>(null);
@@ -35,7 +28,7 @@ export const Player = ({ position }: PlayerProps) => {
   const { projectiles, updateProjectiles } = useProjectiles({
     maxDistance: 15,
     projectileSpeed: 15,
-    lifetime: 5 * 1000,
+    lifetime: 1 * 1000,
     shooterRef: groupRef,
   });
 
@@ -56,13 +49,12 @@ export const Player = ({ position }: PlayerProps) => {
     raycaster.ray.intersectPlane(plane, mouseWorldPosition);
 
     // Make the mesh look towards the mouse position (constrained to Z-axis rotation)
+    const mouseDirection = new Vector3();
     if (mouseWorldPosition) {
-      const direction = new Vector3()
-        .subVectors(mouseWorldPosition, mesh.position)
-        .normalize();
+      mouseDirection.subVectors(mouseWorldPosition, mesh.position).normalize();
 
       // Calculate angle only on the XY plane to avoid mirroring
-      const angle = Math.atan2(direction.y, direction.x);
+      const angle = Math.atan2(mouseDirection.y, mouseDirection.x);
       mesh.rotation.z = angle - Math.PI / 2; // Subtract PI/2 if your model faces up by default
     }
 
@@ -140,15 +132,19 @@ export const Player = ({ position }: PlayerProps) => {
           scale={active ? 1.5 : 1}
           position={position}
           onClick={() => setActive(!active)}
-          onPointerOver={() => setHover(true)}
-          onPointerOut={() => setHover(false)}
+          // onPointerOver={() => setHover(true)}
+          // onPointerOut={() => setHover(false)}
         >
           <primitive object={gltfScene} />
         </group>
       </Suspense>
 
       {projectiles.map((projectile) => (
-        <ShineProjectile key={projectile.id} position={projectile.position} />
+        <ShineProjectile
+          key={projectile.id}
+          position={projectile.position}
+          scaleMultiplier={projectile.scale}
+        />
       ))}
     </>
   );

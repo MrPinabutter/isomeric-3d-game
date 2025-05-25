@@ -4,10 +4,15 @@ import { Mesh, Vector3 } from "three";
 
 interface ShineProjectileProps {
   position: Vector3;
+  scaleMultiplier?: number;
   onHit?: () => void;
 }
 
-export const ShineProjectile = ({ position, onHit }: ShineProjectileProps) => {
+export const ShineProjectile = ({
+  position,
+  onHit,
+  scaleMultiplier = 1,
+}: ShineProjectileProps) => {
   const meshRef = useRef<Mesh>(null);
   const [active, setActive] = useState(false);
 
@@ -33,7 +38,7 @@ export const ShineProjectile = ({ position, onHit }: ShineProjectileProps) => {
       }}
       position={position}
     >
-      <sphereGeometry args={[0.3]} />
+      <sphereGeometry args={[0.3 * scaleMultiplier]} />
       <meshStandardMaterial emissive="red" emissiveIntensity={2} />
       <pointLight color="red" intensity={10} distance={5} />
     </mesh>

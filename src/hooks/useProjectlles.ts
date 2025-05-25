@@ -6,6 +6,7 @@ interface Projectile {
   position: Vector3;
   direction: Vector3;
   createdAt: number;
+  scale: number;
 }
 
 interface UseProjectilesOptions {
@@ -31,6 +32,7 @@ export const useProjectiles = ({
       position: origin.clone(),
       direction: direction.clone().normalize(),
       createdAt: Date.now(),
+      scale: 1,
     };
 
     setProjectiles((prev) => [...prev, newProjectile]);
@@ -60,6 +62,8 @@ export const useProjectiles = ({
             return null;
           }
 
+          const percentage = Math.min(age / lifetime, 1);
+
           // Check if projectile has traveled too far
           const distanceFromPlayer = newPosition.distanceTo(playerPosition);
 
@@ -70,6 +74,7 @@ export const useProjectiles = ({
           return {
             ...projectile,
             position: newPosition,
+            scale: 1 - percentage,
           };
         })
         .filter((p): p is Projectile => p !== null);
@@ -85,12 +90,19 @@ export const useProjectiles = ({
   };
 
   const handleShoot = () => {
-    if (!shooterRef.current) return;
+    const shooter = shooterRef.current;
+    if (!shooter) return;
 
-    const direction = new Vector3();
-    shooterRef.current.getWorldDirection(direction);
+    // Create a direction vector for the forward axis in local space
+    const forward = new Vector3(-1, 0, 0);
 
-    const startPosition = shooterRef.current.position
+    // Convert the rotation (Euler) to a quaternion, then apply to forward vector
+    const direction = forward.clone().applyEuler(shooter.rotation).normalize();
+
+    direction.applyAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2); // 90 degrees
+
+    // Compute the start position in front of the shooter
+    const startPosition = shooter.position
       .clone()
       .add(direction.clone().multiplyScalar(1.5));
 
