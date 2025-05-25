@@ -1,7 +1,14 @@
 import { useGLTF } from "@react-three/drei"; // Import useGLTF
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useRef, useState } from "react";
-import { Group, PerspectiveCamera, Vector3 } from "three";
+import {
+  Group,
+  PerspectiveCamera,
+  Vector3,
+  Box3,
+  Raycaster,
+  Plane,
+} from "three";
 import { usePlayerMovement } from "../hooks/usePlayerMovement";
 import { useProjectiles } from "../hooks/useProjectlles";
 import { ShineProjectile } from "./ShineProjectile";
@@ -38,6 +45,26 @@ export const Player = ({ position }: PlayerProps) => {
     if (!groupRef.current) return;
 
     const mesh = groupRef.current;
+
+    // Calculate mouse position in world space
+    const raycaster = new Raycaster();
+    raycaster.setFromCamera(state.pointer, state.camera);
+
+    // Create a plane at the player's Y position to intersect with the mouse ray
+    const plane = new Plane(new Vector3(0, 0, 1), -mesh.position.z);
+    const mouseWorldPosition = new Vector3();
+    raycaster.ray.intersectPlane(plane, mouseWorldPosition);
+
+    // Make the mesh look towards the mouse position (constrained to Z-axis rotation)
+    if (mouseWorldPosition) {
+      const direction = new Vector3()
+        .subVectors(mouseWorldPosition, mesh.position)
+        .normalize();
+
+      // Calculate angle only on the XY plane to avoid mirroring
+      const angle = Math.atan2(direction.y, direction.x);
+      mesh.rotation.z = angle - Math.PI / 2; // Subtract PI/2 if your model faces up by default
+    }
 
     const mouseOffsetX = state.pointer.x * 0.5;
     const mouseOffsetY = state.pointer.y * 0.5;
@@ -101,17 +128,6 @@ export const Player = ({ position }: PlayerProps) => {
         mesh.position.add(direction);
       }
     }
-
-    const lookAtTarget = new Vector3(
-      state.pointer.x + mesh.position.x,
-      state.pointer.y + mesh.position.y,
-      mesh.position.z
-    );
-    const currentLookAt = new Vector3();
-    mesh.getWorldDirection(currentLookAt);
-
-    currentLookAt.lerp(lookAtTarget.sub(mesh.position), 0.5).normalize();
-    mesh.lookAt(mesh.position.clone().add(currentLookAt));
 
     updateProjectiles(delta, mesh.position);
   });
