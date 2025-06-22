@@ -18,6 +18,8 @@ const keys = {
   KeyD: "right",
 }
 
+//TODO: separar em um arquivo diferente os inpuit, fazer um esquema tipo observador, https://refactoring.guru/pt-br/design-patterns/observer
+
 document.addEventListener("keydown", (e) => {
   const control = keys[e.code as keyof typeof keys]
   if (control) usePlayerControls.setState({ [control]: true })
