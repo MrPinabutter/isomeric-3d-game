@@ -1,29 +1,29 @@
-import { Canvas } from "@react-three/fiber";
-import { Vector3 } from "three";
-import { Player } from "./components/Player";
-import { Debtor } from "./components/Debtor";
-import { ShineProjectile } from "./components/ShineProjectile";
-import { Stats } from "@react-three/drei";
+import { Canvas } from '@react-three/fiber'
+import { useRef } from 'react'
+import { Player } from './components/Player'
+import CameraController from './components/CameraController'
+import { Chao } from './components/Chao'
+import { useThree } from '@react-three/fiber'
 
-function App() {
+export default function App() {
+  const playerRef = useRef(null)
+
   return (
-    <Canvas style={{ width: "100vw", height: "100vh" }}>
-      <ambientLight intensity={Math.PI / 2} />
-      <spotLight
-        position={[10, 10, 10]}
-        angle={0.15}
-        penumbra={1}
-        decay={0}
-        intensity={Math.PI}
-      />
-      <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
+    <Canvas camera={{ fov: 60 }} >
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 10, 5]} intensity={1} />
 
-      <Debtor position={new Vector3(1.2, 0, 0)} />
-      <Player position={new Vector3(-1.2, 0, 0)} />
-      <ShineProjectile position={new Vector3(0, 0, 1)} />
-      <Stats />
+      <Chao />
+=      <PlayerWithCamera playerRef={playerRef} />
+      {/* esse target ta quebrado, mas ta funcionando, nao sei explicar como
+       TODO: arruamr depois kkkkk */}
+      <CameraController targetRef={playerRef} />
     </Canvas>
-  );
+  )
 }
 
-export default App;
+// Esse componente roda dentro do Canvas, aqui pode usar useThree()
+function PlayerWithCamera({ playerRef }: { playerRef: React.RefObject<any> }) {
+  const { camera } = useThree()  // <-- aqui funciona porque está dentro do Canvas
+  return <Player ref={playerRef} camera={camera} />
+}
