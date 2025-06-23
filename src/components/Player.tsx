@@ -78,7 +78,7 @@ export const Player = forwardRef<THREE.Group, PlayerProps>(({ camera }, ref) => 
   })
 
   return (
-    <group ref={localRef} position={[0, 0, 0]}>
+    <group ref={localRef} position={[0, -0.6, 0]}>
       <primitive object={scene} scale={1}  />
     </group>
   )
