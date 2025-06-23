@@ -4,6 +4,7 @@ import { Player } from './components/Player'
 import CameraController from './components/CameraController'
 import { Chao } from './components/Chao'
 import { useThree } from '@react-three/fiber'
+import SkyDome from './components/SkyDome'
 
 export default function App() {
   const playerRef = useRef(null)
@@ -12,9 +13,10 @@ export default function App() {
     <Canvas camera={{ fov: 60 }} >
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 10, 5]} intensity={1} />
-
+   
       <Chao />
-=      <PlayerWithCamera playerRef={playerRef} />
+      <SkyDome />
+      <PlayerWithCamera playerRef={playerRef} />
       {/* esse target ta quebrado, mas ta funcionando, nao sei explicar como
        TODO: arruamr depois kkkkk */}
       <CameraController targetRef={playerRef} />

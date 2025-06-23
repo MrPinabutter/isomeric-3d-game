@@ -116,7 +116,7 @@ export default function CameraController({ targetRef }: CameraControllerProps) {
     camera.position.set(x, y, z);
     camera.lookAt(
       targetRef.current.position.x,
-      targetRef.current.position.y + 1,
+      targetRef.current.position.y + 5,
       targetRef.current.position.z
     );
   });
