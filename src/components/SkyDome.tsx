@@ -2,7 +2,7 @@ import { useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 
 export default function SkyDome() {
-  const texture = useLoader(THREE.TextureLoader, '/sky.png') // caminho da imagem
+  const texture = useLoader(THREE.TextureLoader, '/ceu.png') // caminho da imagem
 
   return (
     <mesh>
