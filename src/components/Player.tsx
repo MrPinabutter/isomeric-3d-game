@@ -1,153 +1,96 @@
-import { useGLTF } from "@react-three/drei"; // Import useGLTF
+import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useRef, useState } from "react";
-import { Group, PerspectiveCamera, Plane, Raycaster, Vector3 } from "three";
-import { usePlayerMovement } from "../hooks/usePlayerMovement";
-import { useProjectiles } from "../hooks/useProjectlles";
-import { ShineProjectile } from "./ShineProjectile";
+import { forwardRef, useImperativeHandle, useRef } from "react";
+import * as THREE from "three";
+import { create } from "zustand";
 
-interface PlayerProps {
-  position?: Vector3;
-}
+const usePlayerControls = create(() => ({
+  forward: false,
+  backward: false,
+  left: false,
+  right: false,
+  run: false,
+}));
 
-export const Player = ({ position }: PlayerProps) => {
-  const groupRef = useRef<Group>(null);
-  const { scene: gltfScene } = useGLTF("/assets/cube.glb");
-
-  // const [hovered, setHover] = useState(false);
-  const [active, setActive] = useState(false);
-  const [isDodging, setIsDodging] = useState(false);
-  const [dodgeDirection, setDodgeDirection] = useState<Vector3 | null>(null);
-  const [dodgeTimeRemaining, setDodgeTimeRemaining] = useState(0);
-
-  const DODGE_TIMEOUT = 1000 * 1;
-  const DODGE_DURATION = 300;
-
-  const { forward, backward, left, right, run, dodge } = usePlayerMovement();
-
-  const { projectiles, updateProjectiles } = useProjectiles({
-    maxDistance: 15,
-    projectileSpeed: 15,
-    lifetime: 1 * 1000,
-    shooterRef: groupRef,
-  });
-
-  const SPEED = 6;
-
-  useFrame((state, delta) => {
-    if (!groupRef.current) return;
-
-    const mesh = groupRef.current;
-
-    // Calculate mouse position in world space
-    const raycaster = new Raycaster();
-    raycaster.setFromCamera(state.pointer, state.camera);
-
-    // Create a plane at the player's Y position to intersect with the mouse ray
-    const plane = new Plane(new Vector3(0, 0, 1), -mesh.position.z);
-    const mouseWorldPosition = new Vector3();
-    raycaster.ray.intersectPlane(plane, mouseWorldPosition);
-
-    // Make the mesh look towards the mouse position (constrained to Z-axis rotation)
-    const mouseDirection = new Vector3();
-    if (mouseWorldPosition) {
-      mouseDirection.subVectors(mouseWorldPosition, mesh.position).normalize();
-
-      // Calculate angle only on the XY plane to avoid mirroring
-      const angle = Math.atan2(mouseDirection.y, mouseDirection.x);
-      mesh.rotation.z = angle - Math.PI / 2; // Subtract PI/2 if your model faces up by default
-    }
-
-    const mouseOffsetX = state.pointer.x * 0.5;
-    const mouseOffsetY = state.pointer.y * 0.5;
-
-    const newCameraPosition = new Vector3(
-      mesh.position.x + mouseOffsetX,
-      mesh.position.y + 0.5 + mouseOffsetY,
-      state.camera.position.z
-    );
-    state.camera.position.lerp(newCameraPosition, 0.15);
-
-    const targetFov = run ? 100 : 80;
-    (state.camera as PerspectiveCamera).fov +=
-      (targetFov - (state.camera as PerspectiveCamera).fov) * 0.05;
-    state.camera.updateProjectionMatrix();
-
-    if (dodgeTimeRemaining > 0) {
-      if (dodgeDirection) {
-        const progress = 1 - dodgeTimeRemaining / DODGE_DURATION;
-        const easeOutStrength = 1 - Math.pow(1 - progress, 3);
-        const dodgeSpeed = 40 * (1 - easeOutStrength) + 5 * easeOutStrength;
-        const moveDelta = dodgeDirection
-          .clone()
-          .multiplyScalar(dodgeSpeed * delta);
-        mesh.position.add(moveDelta);
-      }
-
-      setDodgeTimeRemaining((prev) => Math.max(0, prev - delta * 1000));
-      if (dodgeTimeRemaining <= 0) {
-        setDodgeDirection(null);
-      }
-    } else {
-      const frontVector = new Vector3(0, Number(forward) - Number(backward), 0);
-      const sideVector = new Vector3(Number(right) - Number(left), 0, 0);
-      const direction = new Vector3();
-
-      if (dodge && !isDodging) {
-        const moveDirection = new Vector3().addVectors(frontVector, sideVector);
-
-        if (moveDirection.length() === 0) {
-          const forwardDir = new Vector3();
-          mesh.getWorldDirection(forwardDir);
-          forwardDir.z = 0;
-          setDodgeDirection(forwardDir.normalize());
-        } else {
-          setDodgeDirection(moveDirection.normalize());
-        }
-
-        setIsDodging(true);
-        setDodgeTimeRemaining(DODGE_DURATION);
-
-        setTimeout(() => {
-          setIsDodging(false);
-        }, DODGE_TIMEOUT);
-      } else {
-        direction
-          .addVectors(frontVector, sideVector)
-          .normalize()
-          .multiplyScalar(SPEED * delta * (active || run ? 2 : 1));
-
-        mesh.position.add(direction);
-      }
-    }
-
-    updateProjectiles(delta, mesh.position);
-  });
-
-  return (
-    <>
-      <Suspense fallback={null}>
-        <group
-          ref={groupRef}
-          scale={active ? 1.5 : 1}
-          position={position}
-          onClick={() => setActive(!active)}
-          // onPointerOver={() => setHover(true)}
-          // onPointerOut={() => setHover(false)}
-        >
-          <primitive object={gltfScene} />
-        </group>
-      </Suspense>
-
-      {projectiles.map((projectile) => (
-        <ShineProjectile
-          key={projectile.id}
-          position={projectile.position}
-          scaleMultiplier={projectile.scale}
-        />
-      ))}
-    </>
-  );
+const keys = {
+  KeyW: "forward",
+  KeyS: "backward",
+  KeyA: "left",
+  KeyD: "right",
+  ShiftLeft: "run",
 };
 
-useGLTF.preload("/assets/cube.glb");
+//TODO: separar em um arquivo diferente os inpuit, fazer um esquema tipo observador, https://refactoring.guru/pt-br/design-patterns/observer
+
+type PlayerProps = {
+  camera: THREE.Camera;
+};
+
+document.addEventListener("keydown", (e) => {
+  const control = keys[e.code as keyof typeof keys];
+  if (control) usePlayerControls.setState({ [control]: true });
+});
+
+document.addEventListener("keyup", (e) => {
+  const control = keys[e.code as keyof typeof keys];
+  if (control) usePlayerControls.setState({ [control]: false });
+});
+
+export const Player = forwardRef<THREE.Group, PlayerProps>(
+  ({ camera }, ref) => {
+    const localRef = useRef<THREE.Group>(null);
+    const { scene } = useGLTF("/assets/robo.glb");
+    //virando levemente personagem pra ele nao ficar de lado TODO: exportar certo do blender
+    scene.rotation.y = -Math.PI / 2;
+    const velocity = new THREE.Vector3();
+
+    useImperativeHandle(ref, () => localRef.current!);
+
+    useFrame((_, delta) => {
+      const { forward, backward, left, right, run } =
+        usePlayerControls.getState();
+
+      const camDirection = new THREE.Vector3();
+      camera.getWorldDirection(camDirection);
+      camDirection.y = 0; // ignorar componente vertical
+      camDirection.normalize();
+
+      const camRight = new THREE.Vector3();
+      camRight
+        .crossVectors(new THREE.Vector3(0, 1, 0), camDirection)
+        .normalize();
+
+      const moveDir = setDirectionMove();
+
+      if (moveDir.length() > 0) {
+        const SPEED = 8;
+        moveDir.normalize().multiplyScalar(SPEED * (run ? 2 : 1));
+        velocity.lerp(moveDir, 0.2);
+        localRef.current?.lookAt(
+          localRef.current.position.clone().add(moveDir)
+        );
+      } else {
+        velocity.lerp(new THREE.Vector3(0, 0, 0), 0.2);
+      }
+
+      localRef.current?.position.addScaledVector(velocity, delta);
+
+      function setDirectionMove() {
+        const moveDir = new THREE.Vector3();
+        if (forward) moveDir.add(camDirection);
+        if (backward) moveDir.sub(camDirection);
+        if (left) moveDir.add(camRight);
+        if (right) moveDir.sub(camRight);
+        if (run) moveDir.multiplyScalar(2);
+
+        return moveDir;
+      }
+    });
+
+    return (
+      <group ref={localRef} position={[0, -0.6, 0]}>
+        <primitive object={scene} scale={1} position={[0.9, 0, 0]} />
+      </group>
+    );
+  }
+);
