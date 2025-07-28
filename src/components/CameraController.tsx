@@ -3,7 +3,7 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 
 type CameraControllerProps = {
-  targetRef: React.RefObject<THREE.Object3D>;
+  targetRef: React.RefObject<any>;
 };
 const DISTANCIA_DA_CAMERA = 10;
 

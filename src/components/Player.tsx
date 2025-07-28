@@ -1,70 +1,51 @@
+// src/components/Player.tsx
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
-import { create } from "zustand";
-
-const usePlayerControls = create(() => ({
-  forward: false,
-  backward: false,
-  left: false,
-  right: false,
-  run: false,
-}));
-
-const keys = {
-  KeyW: "forward",
-  KeyS: "backward",
-  KeyA: "left",
-  KeyD: "right",
-  ShiftLeft: "run",
-};
-
-//TODO: separar em um arquivo diferente os inpuit, fazer um esquema tipo observador, https://refactoring.guru/pt-br/design-patterns/observer
+// Update the import path below if InputProvider is located elsewhere, or create the file if missing.
+import type { InputProvider } from "../components/input/InputProvider";
+import { bool } from "three/tsl";
 
 type PlayerProps = {
-  camera: THREE.Camera;
+  camera: THREE.Camera | null;
+  input: InputProvider;
+  debug?: boolean;
 };
 
-document.addEventListener("keydown", (e) => {
-  const control = keys[e.code as keyof typeof keys];
-  if (control) usePlayerControls.setState({ [control]: true });
-});
-
-document.addEventListener("keyup", (e) => {
-  const control = keys[e.code as keyof typeof keys];
-  if (control) usePlayerControls.setState({ [control]: false });
-});
-
 export const Player = forwardRef<THREE.Group, PlayerProps>(
-  ({ camera }, ref) => {
+  ({ camera, input, debug = false }, ref) => {
     const localRef = useRef<THREE.Group>(null);
     const { scene } = useGLTF("/assets/robo.glb");
-    //virando levemente personagem pra ele nao ficar de lado TODO: exportar certo do blender
-    scene.rotation.y = -Math.PI / 2;
+    const model = scene.clone(true);
+    model.rotation.y = -Math.PI / 2;
     const velocity = new THREE.Vector3();
 
     useImperativeHandle(ref, () => localRef.current!);
 
     useFrame((_, delta) => {
-      const { forward, backward, left, right, run } =
-        usePlayerControls.getState();
+      const { forward, backward, left, right, run } = input.getInputState();
 
       const camDirection = new THREE.Vector3();
-      camera.getWorldDirection(camDirection);
-      camDirection.y = 0; // ignorar componente vertical
+      if (camera){
+         camera.getWorldDirection(camDirection);
+      }
+      camDirection.y = 0;
       camDirection.normalize();
 
       const camRight = new THREE.Vector3();
-      camRight
-        .crossVectors(new THREE.Vector3(0, 1, 0), camDirection)
-        .normalize();
+      camRight.crossVectors(new THREE.Vector3(0, 1, 0), camDirection).normalize();
 
-      const moveDir = setDirectionMove();
+      const moveDir = new THREE.Vector3();
+      if (forward) moveDir.add(camDirection);
+      if (backward) moveDir.sub(camDirection);
+      if (left) moveDir.add(camRight);
+      if (right) moveDir.sub(camRight);
+      if (run) moveDir.multiplyScalar(2);
 
       if (moveDir.length() > 0) {
         const SPEED = 8;
-        moveDir.normalize().multiplyScalar(SPEED * (run ? 2 : 1));
+        moveDir.normalize().multiplyScalar(SPEED);
         velocity.lerp(moveDir, 0.2);
         localRef.current?.lookAt(
           localRef.current.position.clone().add(moveDir)
@@ -74,22 +55,18 @@ export const Player = forwardRef<THREE.Group, PlayerProps>(
       }
 
       localRef.current?.position.addScaledVector(velocity, delta);
-
-      function setDirectionMove() {
-        const moveDir = new THREE.Vector3();
-        if (forward) moveDir.add(camDirection);
-        if (backward) moveDir.sub(camDirection);
-        if (left) moveDir.add(camRight);
-        if (right) moveDir.sub(camRight);
-        if (run) moveDir.multiplyScalar(2);
-
-        return moveDir;
-      }
     });
 
     return (
       <group ref={localRef} position={[0, -0.6, 0]}>
-        <primitive object={scene} scale={1} position={[0.9, 0, 0]} />
+        <primitive object={model} scale={1} position={[0.9, 0, 0]} />
+
+        {debug && (
+        <mesh position={[0.9, 0, 0]}>
+          <boxGeometry args={[0.3, 0.3, 0.3]} />
+          <meshStandardMaterial color="red" />
+        </mesh>
+      )}
       </group>
     );
   }
